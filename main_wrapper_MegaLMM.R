@@ -10,26 +10,43 @@
 #' _____________________________________________________________________________
 
 ## *****************************************************************************
-## 1) Setting up the environment ----
+## 1) Setting work directory ----
 ## _____________________________________________________________________________
 
-# 1.1) Load the required libraries ----
+setwd('./')
+
+## *****************************************************************************
+## 2) Setting up the environment ----
+## _____________________________________________________________________________
+
+# 2.1) Load the source files ----
+
+# Check that the src directory is contained in current working directory
+
+source_resources <- function(path)
+{
+  if(dir.exists(path = path))
+  {
+    lapply(list.files(path, full.names = T), FUN = source)
+  }
+  else
+  {
+    stop("Directory specified for sourcing resources does not exist.")
+  }
+}
+
+source_resources("src")
+
+# 2.2) Load the required libraries ----
 
 required_libraries <- c("MegaLMM", "ggplot2")
 
 set_environment(required_pckgs = required_libraries)
 
 ## *****************************************************************************
-## 2) Setting work directory ----
-## _____________________________________________________________________________
-
-setwd('./')
-
-## *****************************************************************************
-## 2) Importing the data ----
+## 3) Importing the data ----
 ## _____________________________________________________________________________
 
 #' Data that should be imported for this wrapper includes trait values, genetic
 #' relationships, and covariates. User can omit covariates in this implementation
 
-##
