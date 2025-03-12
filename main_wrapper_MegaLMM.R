@@ -39,7 +39,7 @@ source_resources("src")
 
 # 2.2) Load the required libraries ----
 
-required_libraries <- c("MegaLMM", "ggplot2")
+required_libraries <- c("MegaLMM", "ggplot2", "tidyr")
 
 set_environment(required_pckgs = required_libraries)
 
@@ -50,3 +50,7 @@ set_environment(required_pckgs = required_libraries)
 #' Data that should be imported for this wrapper includes trait values, genetic
 #' relationships, and covariates. User can omit covariates in this implementation
 
+Data <- Mega_LMM_input_reader(Y_path = "data/Toy_version_Mg/Pheno6.txt",
+                              K_path = "data/Toy_version_Mg/RelationshipMatrix.txt",
+                              C_path = "data/Toy_version_Mg/mim.fe.txt",
+                              sep = "\t")
