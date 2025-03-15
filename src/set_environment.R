@@ -74,7 +74,6 @@ set_environment <- function(required_pckgs,
     
     # Set up future
     options(doFuture.rng.onMisuse = "ignore")
-    registerDoFuture()
     future::plan(future::multisession, workers = parallelly::availableCores() - 1)
     
     # Set up foreach

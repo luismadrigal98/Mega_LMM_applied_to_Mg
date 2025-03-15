@@ -58,8 +58,17 @@ Data <- Mega_LMM_input_reader(Y_path = "data/Toy_version_Mg/Pheno6.txt",
                               sep = "\t")
 
 ## *****************************************************************************
-## 4) 
+## 4) Running BLUP using cross validation to assess model performance ----
 ## _____________________________________________________________________________
+
+## 4.1) Creating the fold assignation per trait ----
+
+#' By using different fold assignation per trait we ensure 
+
+fold_matrix <- create_cv_folds(Y = Data@Y, sample_data = Data@C_data, 
+                               k = 5, group_col = "Covariate_2", 
+                               id_col = "Ind_ID")
+
 
 
 ## Cleaning-up environment ----
