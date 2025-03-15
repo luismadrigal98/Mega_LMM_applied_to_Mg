@@ -39,9 +39,11 @@ source_resources("src")
 
 # 2.2) Load the required libraries ----
 
-required_libraries <- c("MegaLMM", "ggplot2", "tidyr")
+required_libraries <- c("MegaLMM", "ggplot2", "tidyr", "rrBLUP", "foreach",
+                        "parallel", "doParallel")
 
-set_environment(required_pckgs = required_libraries)
+env <- set_environment(required_pckgs = required_libraries, 
+                       parallel_backend = TRUE)
 
 ## *****************************************************************************
 ## 3) Importing the data ----
@@ -54,3 +56,11 @@ Data <- Mega_LMM_input_reader(Y_path = "data/Toy_version_Mg/Pheno6.txt",
                               K_path = "data/Toy_version_Mg/RelationshipMatrix.txt",
                               C_path = "data/Toy_version_Mg/mim.fe.txt",
                               sep = "\t")
+
+## *****************************************************************************
+## 4) 
+## _____________________________________________________________________________
+
+
+## Cleaning-up environment ----
+cleanup_parallel()

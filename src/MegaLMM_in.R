@@ -9,4 +9,5 @@ setClass(Class = "MegaLMM_in", slots = c(Y_data = "data.frame",
                                          Y = "matrix",
                                          K = "matrix",
                                          C_data = "data.frame",
-                                         C = "matrix"))
+                                         C = "matrix",
+                                         Design_dt = "data.frame"))

@@ -3,7 +3,7 @@ set_environment <- function(required_pckgs,
                             personal_seed = as.numeric(Sys.time()),
                             parallel_backend = FALSE)
 {
-  #' This fucntion will set up the working environment for performing all the
+  #' This function will set up the working environment for performing all the
   #' analysis. It will load all the required packages, set the seed for
   #' reproducibility and set the parallel backend if required.
   #' 
@@ -20,6 +20,9 @@ set_environment <- function(required_pckgs,
   #' 
   #' @return invisible
   #' ___________________________________________________________________________
+  
+  # Initialize return object
+  env_objects <- list()
   
   ## Loading the required libraries ----
   
@@ -61,16 +64,27 @@ set_environment <- function(required_pckgs,
   set.seed(personal_seed)
   
   ## Setting the parallel backend ----
-  if(parallel_backend == TRUE)
-  {
-    require(future)
-    require(future.apply)
+  if(parallel_backend == TRUE) {
+    # Check dependencies first
+    pkgs_needed <- c("future", "doFuture", "foreach", "doParallel", "parallelly")
+    missing_pkgs <- pkgs_needed[!sapply(pkgs_needed, requireNamespace, quietly = TRUE)]
+    if(length(missing_pkgs) > 0) {
+      stop("Missing required parallel packages: ", paste(missing_pkgs, collapse=", "))
+    }
     
-    ## 1.2) Setting the parallel backend
+    # Set up future
     options(doFuture.rng.onMisuse = "ignore")
     registerDoFuture()
-    plan(multisession, workers = parallelly::availableCores() - 1)
+    future::plan(future::multisession, workers = parallelly::availableCores() - 1)
+    
+    # Set up foreach
+    cores <- parallel::detectCores() - 1
+    cl <- parallel::makeCluster(cores)
+    doParallel::registerDoParallel(cl)
+    
+    # Store cluster in return object
+    env_objects$cluster <- cl
   }
   
-  return(invisible())
+  return(env_objects)
 }

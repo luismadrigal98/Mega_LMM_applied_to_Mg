@@ -100,6 +100,10 @@ Mega_LMM_input_reader <- function(Y_path, K_path, C_path = NULL,
     Mega_object@C <- as.matrix(Mega_object@C_data[, -1])
     rownames(Mega_object@C) <- Ind_ID
     colnames(Mega_object@C) <- col_m
+    
+    # If covariates are present, make a combined data structure for modeling
+    Mega_object@Design_dt <- merge(Mega_object@Y_data, Mega_object@C_data,
+                                  by = "Ind_ID")
   }
   
   return(Mega_object)
