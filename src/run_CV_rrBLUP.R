@@ -1,140 +1,118 @@
-run_CV_rrBLUP <- function(Y, fold_matrix, sample_data, K, formula)
-{
-  #' This function is designed to execute run_rrBLUP_baseline in parallel and using
-  #' cross validation. This will produce a set of estimates per fold and provide
-  #' a measure of accuracy that could be used to assess its performance.
+run_CV_rrBLUP <- function(Y, fold_matrix, sample_data, K, formula) {
+  #' Cross-validation for rrBLUP using run_rrBLUP_baseline
   #' 
   #' @param Y Trait matrix, where rownames contain the Individual_ID
   #' @param fold_matrix A fold assignment matrix with same dimensions as Y
-  #' @param sample_data Data frame with individual information needed for fixed effects
+  #' @param sample_data Data frame with individual information for fixed effects
   #' @param K Kinship/relationship matrix
   #' @param formula Model formula for fixed effects
   #' 
-  #' @return A list with the prediction per fold, the estimated accuracy per trait,
-  #' and an overall accuracy across all folds and traits.
+  #' @return A list with predictions, accuracies per trait, and overall accuracy
   #' ___________________________________________________________________________
   
-  # Ensure fold_matrix has same dimensions as Y
+  # Basic validation
   if(!identical(dim(Y), dim(fold_matrix)) || !identical(rownames(Y), rownames(fold_matrix))) {
     stop("fold_matrix must have same dimensions and rownames as Y")
   }
   
-  # Retrieving the number of folds in the fold_matrix
+  # Setup
   folds <- sort(unique(as.vector(fold_matrix)))
   n_folds <- length(folds)
   n_traits <- ncol(Y)
+  trait_names <- colnames(Y)
+  all_IDs <- rownames(Y)
   
-  # Prepare containers for results
+  # Results containers
   predictions <- Y * NA
   predictions_train <- Y * NA
   accuracies <- matrix(NA, n_folds, n_traits, 
-                       dimnames = list(paste0("Fold_", folds), colnames(Y)))
+                       dimnames = list(paste0("Fold_", folds), trait_names))
   
-  # Outer loop over folds
-  results <- foreach(fold = folds, .combine = 'list', .multicombine = TRUE,
-                     .packages = c("rrBLUP", "stats", "utils"),
-                     .export = c("run_rrBLUP_baseline")) %dopar% {
-                       
-                       fold_predictions <- Y * NA
-                       fold_predictions_train <- Y * NA
-                       fold_accuracies <- numeric(n_traits)
-                       names(fold_accuracies) <- colnames(Y)
-                       
-                       # Inner loop over traits
-                       for(trait_idx in 1:n_traits) {
-                         # Get trait name
-                         trait <- colnames(Y)[trait_idx]
-                         
-                         # Create train/test split for this trait and fold
-                         is_test <- fold_matrix[, trait_idx] == fold
-                         is_train <- !is_test & !is.na(Y[, trait_idx])
-                         
-                         # Skip if no test samples for this fold
-                         if(sum(is_test, na.rm = TRUE) == 0) next
-                         
-                         # Prepare training data
-                         Y_train <- Y[is_train, , drop = FALSE]
-                         sample_data_train <- sample_data[rownames(Y_train), , drop = FALSE]
-                         
-                         # Run rrBLUP on training data
-                         predictions_all <- run_rrBLUP_baseline(Y_train, sample_data_train, 
-                                                                K, formula,
-                                                                parallel = FALSE)
-                         
-                         # FIXED: Store training predictions by row names to avoid dimension issues
-                         if(is.list(predictions_all) && "predictions" %in% names(predictions_all)) {
-                           fold_predictions_train[rownames(predictions_all$predictions), ] <- predictions_all$predictions
-                         } else {
-                           fold_predictions_train[rownames(predictions_all), ] <- predictions_all
-                         }
-                         
-                         # Prepare test data
-                         sample_data_test <- sample_data[is_test, , drop = FALSE]
-                         
-                         # Extract fixed effect formula parts
-                         fixed_formula <- as.formula(paste("~", as.character(formula)[2]))
-                         
-                         # Create design matrices
-                         X_train <- model.matrix(fixed_formula, sample_data_train)
-                         X_test <- model.matrix(fixed_formula, sample_data_test)
-                         
-                         # FIXED: Ensure K has proper row/column names and dimensions
-                         K_train <- K[rownames(Y_train), rownames(Y_train), drop = FALSE]
-                         if(any(is.na(K_train))) warning("NA values in subsetted kinship matrix")
-                         
-                         # Get predictions for test samples
-                         res <- mixed.solve(y = Y_train[, trait_idx], X = X_train, K = K_train)
-                         
-                         # FIXED: Handle potential mismatch in test predictions
-                         matched_idx <- match(rownames(sample_data_test), rownames(Y_train))
-                         test_u <- rep(0, nrow(sample_data_test))
-                         valid_idx <- !is.na(matched_idx)
-                         if(any(valid_idx)) {
-                           test_u[valid_idx] <- res$u[matched_idx[valid_idx]]
-                         }
-                         test_preds <- c(X_test %*% res$beta) + test_u
-                         
-                         # Store test predictions
-                         fold_predictions[is_test, trait_idx] <- test_preds
-                         
-                         # Calculate accuracy
-                         observed <- Y[is_test, trait_idx]
-                         predicted <- fold_predictions[is_test, trait_idx]
-                         fold_accuracies[trait_idx] <- cor(observed, predicted, use = "pairwise.complete.obs")
-                       }
-                       
-                       list(
-                         predictions = fold_predictions,
-                         predictions_train = fold_predictions_train,
-                         accuracies = fold_accuracies
-                       )
-                     }
-  
-  # Combine results from all folds
-  for(i in 1:n_folds) {
-    fold_result <- results[[i]]
+  # Process each fold sequentially
+  for(f in 1:n_folds) {
+    fold <- folds[f]
+    cat(sprintf("\nProcessing fold %d/%d\n", f, n_folds))
     
-    # Update predictions - only fill in the test predictions from each fold
-    is_pred <- !is.na(fold_result$predictions)
-    if(any(is_pred)) predictions[is_pred] <- fold_result$predictions[is_pred]
+    # For each trait, set up train/test datasets
+    Y_train <- Y * NA    # Make a copy with NAs in test positions
+    test_samples <- list()  # Track test samples by trait
     
-    # Update training predictions
-    is_train_pred <- !is.na(fold_result$predictions_train)
-    if(any(is_train_pred)) predictions_train[is_train_pred] <- fold_result$predictions_train[is_train_pred]
+    for(t in 1:n_traits) {
+      # Get test samples for this trait/fold
+      is_test <- fold_matrix[, t] == fold
+      test_samples[[t]] <- rownames(Y)[is_test]
+      
+      # For this trait, set training values (non-test samples)
+      Y_train[!is_test, t] <- Y[!is_test, t]
+      
+      cat(sprintf("  Trait %d (%s): %d test samples\n", 
+                  t, trait_names[t], sum(is_test)))
+    }
     
-    # Store accuracies
-    accuracies[i,] <- fold_result$accuracies
+    # Important: No need to subset sample_data!
+    # run_rrBLUP_baseline will automatically use only the rows needed
+    # based on non-NA values in Y_train
+    cat("  Running rrBLUP on training data...\n")
+    
+    tryCatch({
+      # Run rrBLUP on the training data 
+      # Note: We pass the COMPLETE sample_data and K matrix
+      blup_results <- run_rrBLUP_baseline(
+        Y = Y_train,           # Training data (NAs for test samples)
+        sample_data = sample_data,  # Full sample data (used for all samples)
+        K = K,                 # Full relationship matrix (for all samples)
+        formula = formula,
+        return_all_BLUP_values = TRUE,
+        parallel = TRUE
+      )
+      
+      # Store training predictions
+      predictions_train[!is.na(Y_train)] <- blup_results$predictions[!is.na(Y_train)]
+      
+      # For each trait, extract test predictions and calculate accuracy
+      for(t in 1:n_traits) {
+        test_ids <- test_samples[[t]]
+        if(length(test_ids) > 0) {
+          # Store test predictions (already computed by run_rrBLUP_baseline)
+          predictions[test_ids, t] <- blup_results$predictions[test_ids, t]
+          
+          # Calculate accuracy
+          observed <- Y[test_ids, t]
+          predicted <- predictions[test_ids, t]
+          valid <- !is.na(observed) & !is.na(predicted)
+          
+          if(sum(valid) >= 5) {
+            accuracies[f, t] <- cor(observed[valid], predicted[valid])
+            cat(sprintf("  Trait %d (%s): Accuracy = %.4f (n=%d)\n", 
+                        t, trait_names[t], accuracies[f, t], sum(valid)))
+          } else {
+            cat(sprintf("  Trait %d (%s): Not enough valid data points\n", 
+                        t, trait_names[t]))
+          }
+        }
+      }
+      
+    }, error = function(e) {
+      cat(sprintf("  ERROR: %s\n", conditionMessage(e)))
+    })
   }
   
-  # Calculate overall accuracies per trait
-  overall_accuracies <- apply(accuracies, 2, mean, na.rm = TRUE)
+  # Calculate overall statistics
+  trait_accuracies <- colMeans(accuracies, na.rm = TRUE)
+  overall_accuracy <- mean(trait_accuracies, na.rm = TRUE)
+  
+  cat("\nOverall Results:\n")
+  for(t in 1:n_traits) {
+    cat(sprintf("  %s: %.4f\n", trait_names[t], trait_accuracies[t]))
+  }
+  cat(sprintf("  Average: %.4f\n", overall_accuracy))
   
   # Return results
   return(list(
     predictions = predictions,
     predictions_train = predictions_train,
     fold_accuracies = accuracies,
-    trait_accuracies = overall_accuracies,
-    overall_accuracy = mean(overall_accuracies, na.rm = TRUE)
+    trait_accuracies = trait_accuracies,
+    overall_accuracy = overall_accuracy
   ))
 }

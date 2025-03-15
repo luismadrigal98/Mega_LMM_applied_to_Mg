@@ -78,13 +78,29 @@ fold_matrix <- create_cv_folds(Y = Data@Y, sample_data = Data@C_data,
                                k = 5, group_col = "Covariate_2", 
                                id_col = "Ind_ID")
 
-results <- run_CV_rrBLUP(
+results_BLUP_CV <- run_CV_rrBLUP(
   Y = Data@Y, 
   fold_matrix = fold_matrix,
   sample_data = Data@C_data,
   K = Data@K,
   formula = ~ Covariate_1 + Covariate_2 + Covariate_3 + Covariate_3
 )
+
+## Fitting a BLUP model using all the data ----
+
+BLUP_result_all <- run_rrBLUP_baseline(
+  Y = Data@Y, 
+  sample_data = Data@C_data,
+  K = Data@K,
+  formula = ~ Covariate_1 + Covariate_2 + Covariate_3 + Covariate_3,
+  return_all_BLUP_values = TRUE,
+  parallel = TRUE
+)
+
+## *****************************************************************************
+## 5) Setting up the MEGA_LMM run ----
+## _____________________________________________________________________________
+
 
 ## Cleaning-up environment ----
 cleanup_parallel()

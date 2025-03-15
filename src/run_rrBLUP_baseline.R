@@ -1,6 +1,6 @@
 run_rrBLUP_baseline <- function(Y, sample_data, K, formula, 
                                 return_all_BLUP_values = FALSE,
-                                parallel = FALSE) 
+                                parallel = TRUE) 
 {
   #' Run rrBLUP as a baseline comparison model
   #' 
