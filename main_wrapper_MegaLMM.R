@@ -78,9 +78,6 @@ fold_matrix <- create_cv_folds(Y = Data@Y, sample_data = Data@C_data,
                                k = 5, group_col = "Covariate_2", 
                                id_col = "Ind_ID")
 
-run_rrBLUP_baseline(Y_train = Data@Y, sample_data = Data@C_data, K = Data@K,
-                    formula = ~ Covariate_2)
-
 results <- run_CV_rrBLUP(
   Y = Data@Y, 
   fold_matrix = fold_matrix,

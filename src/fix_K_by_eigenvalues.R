@@ -59,6 +59,9 @@ fix_K_by_eigenvalues <- function(K, max_iter = 10, min_eigenvalue = 1e-6,
   #' @export
   #' ___________________________________________________________________________
   
+  # Save the dimnames
+  dimnames_K <- dimnames(K)
+  
   iter_count <- 0
   initial_min_eig <- min(eigen(K, symmetric = TRUE, only.values = TRUE)$values)
   
@@ -100,6 +103,9 @@ fix_K_by_eigenvalues <- function(K, max_iter = 10, min_eigenvalue = 1e-6,
     cat(sprintf("Min eigenvalue changed from %.8g to %.8g\n", 
                 initial_min_eig, final_min_eig))
   }
+  
+  ## Return the dimnames to K
+  dimnames(K) <- dimnames_K
   
   return(list(
     matrix = K,

@@ -1,5 +1,6 @@
 run_rrBLUP_baseline <- function(Y, sample_data, K, formula, 
-                                return_all_BLUP_values = FALSE) 
+                                return_all_BLUP_values = FALSE,
+                                parallel = FALSE) 
 {
   #' Run rrBLUP as a baseline comparison model
   #' 
@@ -9,6 +10,8 @@ run_rrBLUP_baseline <- function(Y, sample_data, K, formula,
   #' @param formula Model formula for fixed effects
   #' @param return_all_BLUP_values Logical indicating whether to return all BLUP 
   #' values produced by mixed.solve.
+  #' @param parallel Logical indicating whether to parallelize trait processing.
+  #' Should be FALSE when called from parallel cross-validation functions.
   #' @return Matrix of rrBLUP predictions or list containing predictions and BLUP values
   #' ___________________________________________________________________________
   
@@ -25,28 +28,51 @@ run_rrBLUP_baseline <- function(Y, sample_data, K, formula,
   # Initialize container for BLUP results
   BLUP_per_trait <- list()
   
-  # Run rrBLUP separately for each predictor
-  results <- foreach(i = 1:ncol(Y), .packages = "rrBLUP") %dopar% {
-    # Check if we need to drop some fixed effects due to zero variance
-    X_i <- X
-    if (ncol(X) > 1) {
-      var_check <- apply(X[!is.na(Y[, i]), , drop = FALSE], 2, var)
-      if (any(var_check == 0)) {
-        X_i <- X[, var_check > 0, drop = FALSE]
+  if (parallel) {
+    # Use foreach with parallel backend
+    library(foreach)
+    library(doParallel)
+    cores <- parallel::detectCores() - 1
+    cl <- parallel::makeCluster(cores)
+    registerDoParallel(cl)
+    on.exit(parallel::stopCluster(cl))
+    
+    results <- foreach(i = 1:ncol(Y), .packages = "rrBLUP") %dopar% {
+      # Process trait code...
+      X_i <- X
+      if (ncol(X) > 1) {
+        var_check <- apply(X[!is.na(Y[, i]), , drop = FALSE], 2, var)
+        if (any(var_check == 0)) {
+          X_i <- X[, var_check > 0, drop = FALSE]
+        }
       }
+      
+      res <- mixed.solve(y = Y[, i], X = X_i, K = K)
+      predictions <- c(X_i %*% res$beta) + res$u
+      
+      list(predictions = predictions, model_fit = res)
     }
+  } else {
+    # Use standard loop when called from other parallel functions
+    results <- vector("list", ncol(Y))
     
-    # Fit model
-    res <- mixed.solve(y = Y[, i], X = X_i, K = K)
-    
-    # Make predictions
-    predictions <- c(X_i %*% res$beta) + res$u
-    
-    # Return both predictions and model results
-    list(predictions = predictions, model_fit = res)
+    for (i in 1:ncol(Y)) {
+      X_i <- X
+      if (ncol(X) > 1) {
+        var_check <- apply(X[!is.na(Y[, i]), , drop = FALSE], 2, var)
+        if (any(var_check == 0)) {
+          X_i <- X[, var_check > 0, drop = FALSE]
+        }
+      }
+      
+      res <- mixed.solve(y = Y[, i], X = X_i, K = K)
+      predictions <- c(X_i %*% res$beta) + res$u
+      
+      results[[i]] <- list(predictions = predictions, model_fit = res)
+    }
   }
   
-  # Extract results from foreach
+  # Extract results from foreach/loop
   for (i in 1:ncol(Y)) {
     rrBLUP_predictions[, i] <- results[[i]]$predictions
     BLUP_per_trait[[colnames(Y)[i]]] <- results[[i]]$model_fit
