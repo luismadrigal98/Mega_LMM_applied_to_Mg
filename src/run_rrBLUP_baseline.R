@@ -1,9 +1,8 @@
-run_rrBLUP_baseline <- function(Y_train, Y_test, sample_data, K, formula) 
+run_rrBLUP_baseline <- function(Y_train, sample_data, K, formula) 
 {
   #' Run rrBLUP as a baseline comparison model
   #' 
   #' @param Y_train Training phenotype matrix
-  #' @param Y_test Test phenotype matrix 
   #' @param sample_data Data frame with individual information
   #' @param K Kinship/relationship matrix
   #' @param formula Model formula for fixed effects
