@@ -40,7 +40,7 @@ source_resources("src")
 # 2.2) Load the required libraries ----
 
 required_libraries <- c("MegaLMM", "ggplot2", "tidyr", "rrBLUP", "foreach",
-                        "parallel", "doParallel")
+                        "parallel", "doParallel", "matrixcalc")
 
 env <- set_environment(required_pckgs = required_libraries, 
                        parallel_backend = TRUE)
@@ -57,6 +57,14 @@ Data <- Mega_LMM_input_reader(Y_path = "data/Toy_version_Mg/Pheno6.txt",
                               C_path = "data/Toy_version_Mg/mim.fe.txt",
                               sep = "\t")
 
+## 3.1) Checking the data----
+
+#' K must be positive semi-definite
+
+if(!matrixcalc::is.positive.semi.definite(x = Data@K)) {
+  Data@K <- fix_K_by_eigenvalues(Data@K, max_iter = 3, verbose = TRUE)$matrix
+}
+
 ## *****************************************************************************
 ## 4) Running BLUP using cross validation to assess model performance ----
 ## _____________________________________________________________________________
@@ -64,14 +72,22 @@ Data <- Mega_LMM_input_reader(Y_path = "data/Toy_version_Mg/Pheno6.txt",
 ## 4.1) Creating the fold assignation per trait ----
 
 #' By using different fold assignation per trait we ensure robust statistical
-#' performance
+#' individuals are used for training and testing in each traitrformance
 
 fold_matrix <- create_cv_folds(Y = Data@Y, sample_data = Data@C_data, 
                                k = 5, group_col = "Covariate_2", 
                                id_col = "Ind_ID")
 
+run_rrBLUP_baseline(Y_train = Data@Y, sample_data = Data@C_data, K = Data@K,
+                    formula = ~ Covariate_2)
 
-
+results <- run_CV_rrBLUP(
+  Y = Data@Y, 
+  fold_matrix = fold_matrix,
+  sample_data = Data@C_data,
+  K = Data@K,
+  formula = ~ Covariate_1 + Covariate_2 + Covariate_3 + Covariate_3
+)
 
 ## Cleaning-up environment ----
 cleanup_parallel()
