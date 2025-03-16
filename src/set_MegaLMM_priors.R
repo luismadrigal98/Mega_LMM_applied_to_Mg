@@ -1,4 +1,4 @@
-set_megalMM_priors <- function(MegaLMM_state, lambda_prior_type = "horseshoe") 
+set_MegaLMM_priors <- function(MegaLMM_state, lambda_prior_type = "horseshoe") 
 {
   #' Set priors for MegaLMM model
   #' 
