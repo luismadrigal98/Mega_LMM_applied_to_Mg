@@ -86,6 +86,26 @@ results_BLUP_CV <- run_CV_rrBLUP(
   formula = ~ Covariate_1 + Covariate_2 + Covariate_3 + Covariate_3
 )
 
+# Create a directory if it doesn't exist
+dir.create("./results/BLUP", recursive = TRUE, showWarnings = FALSE)
+
+# Format results into a data frame
+results_summary <- data.frame(
+  Trait = names(results_BLUP_CV$trait_accuracies),
+  Accuracy = results_BLUP_CV$trait_accuracies
+)
+# Add overall average
+results_summary <- rbind(
+  results_summary,
+  data.frame(Trait = "Overall_Average", 
+             Accuracy = results_BLUP_CV$overall_accuracy)
+)
+
+# Write as a single file
+write.table(results_summary,
+            file = "./results/BLUP/BLUP_CV_performance_all_traits.txt",
+            sep = '\t', row.names = FALSE, quote = FALSE)
+
 ## Fitting a BLUP model using all the data ----
 
 BLUP_result_all <- run_rrBLUP_baseline(
@@ -97,9 +117,15 @@ BLUP_result_all <- run_rrBLUP_baseline(
   parallel = TRUE
 )
 
+## Exporting the results
+write.table(BLUP_result_all$predictions, 
+            file = "./results/BLUP/BLUP_predicitons_all_traits.txt", 
+            sep = '\t')
+
 ## *****************************************************************************
 ## 5) Setting up the MEGA_LMM run ----
 ## _____________________________________________________________________________
+
 
 
 ## Cleaning-up environment ----
