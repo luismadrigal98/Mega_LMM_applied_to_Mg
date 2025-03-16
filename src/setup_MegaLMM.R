@@ -1,42 +1,43 @@
-setup_MegaLMM <- function(Y, formula, sample_data, K, 
-                          factors = 15, run_ID = "MegaLMM_run",
+setup_MegaLMM <- function(Y, formula, sample_data, kinship_matrix, 
+                          latent_factors = 15, run_ID = "MegaLMM_run",
                           h2_divisions = 20, burn = 0, thin = 2,
-                          scale_Y = T, h2_step_size = NULL,
-                          save_current_state = T) 
+                          h2_step_size = NULL,
+                          save_current_state = TRUE) 
 {
   #' Setup MegaLMM model with optimized parameters
   #' 
   #' @param Y Training phenotype matrix
   #' @param formula Model formula
   #' @param sample_data Data frame with individual information
-  #' @param K Kinship/relationship matrix
-  #' @param factors Number of latent factors
+  #' @param kinship_matrix Kinship/relationship matrix
+  #' @param latent_factors Number of latent factors
   #' @param run_ID Identifier for the model run
   #' @param h2_divisions Number of divisions for h2 prior
   #' @param burn Burn-in iterations
   #' @param thin Thinning interval
-  #' @param scale_Y Scale the phenotype matrix. Defaults to TRUE.
   #' @param h2_step_size Step size for h2 prior. Defaults to NULL.
   #' @param save_current_state Save the current state of the model. Defaults to TRUE.
   #' 
   #' @return Initialized MegaLMM state object
   #' ___________________________________________________________________________
   
-  # Set control parameters
-  run_parameters <- MegaLMM_control(
+  # Create MegaLMM control parameters first with very explicit naming
+  control_params <- list(
     h2_divisions = h2_divisions,
     burn = burn,  
     thin = thin,
-    K = factors,
-    scale_Y = scale_Y,
+    K = latent_factors,  # K in MegaLMM_control refers to number of factors
     h2_step_size = h2_step_size,
     save_current_state = save_current_state
   )
   
-  # Extract first column name from K if it's a list
+  # Use do.call to avoid any evaluation errors
+  run_parameters <- do.call(MegaLMM_control, control_params)
+  
+  # Process kinship matrix
   relmat_var <- NULL
-  if (is.list(K)) {
-    relmat_var <- names(K)[1]
+  if (is.list(kinship_matrix)) {
+    relmat_var <- names(kinship_matrix)[1]
   } else {
     # Try to infer the variable from the formula
     relmat_var <- all.vars(formula[[3]])
@@ -48,8 +49,8 @@ setup_MegaLMM <- function(Y, formula, sample_data, K,
       stop("Could not determine random effect variable from formula")
     }
     K_list <- list()
-    K_list[[relmat_var]] <- K
-    K <- K_list
+    K_list[[relmat_var]] <- kinship_matrix
+    kinship_matrix <- K_list
   }
   
   # Setup the model
@@ -57,7 +58,7 @@ setup_MegaLMM <- function(Y, formula, sample_data, K,
     Y = Y,
     formula = formula,
     data = sample_data,
-    relmat = K,
+    relmat = kinship_matrix,
     run_parameters = run_parameters,
     run_ID = run_ID
   )

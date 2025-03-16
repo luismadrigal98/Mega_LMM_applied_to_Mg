@@ -126,6 +126,16 @@ write.table(BLUP_result_all$predictions,
 ## 5) Setting up the MEGA_LMM run ----
 ## _____________________________________________________________________________
 
+## Fitting the MegaLMM model with all the data ----
+
+megalMM_state <- setup_MegaLMM(
+  Y = Data@Y,
+  formula = ~ Covariate_1 + Covariate_2 + Covariate_3 + Covariate_4 + (1|Ind_ID),
+  sample_data = Data@Design_dt,
+  kinship_matrix = Data@K,  # Changed from K to kinship_matrix
+  latent_factors = 7,       # Changed from factors to latent_factors
+  run_ID = "MegaLMM_7_latent"
+)
 
 
 ## Cleaning-up environment ----
