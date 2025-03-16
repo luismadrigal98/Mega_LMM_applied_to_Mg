@@ -21,7 +21,7 @@ setup_MegaLMM <- function(Y, formula, sample_data, kinship_matrix,
   #' @return Initialized MegaLMM state object
   #' ___________________________________________________________________________
   
-  # Create MegaLMM control parameters first with very explicit naming
+  # Create MegaLMM control parameters
   control_params <- list(
     h2_divisions = h2_divisions,
     burn = burn,  
@@ -31,26 +31,32 @@ setup_MegaLMM <- function(Y, formula, sample_data, kinship_matrix,
     save_current_state = save_current_state
   )
   
-  # Use do.call to avoid any evaluation errors
   run_parameters <- do.call(MegaLMM_control, control_params)
   
-  # Process kinship matrix
-  relmat_var <- NULL
-  if (is.list(kinship_matrix)) {
-    relmat_var <- names(kinship_matrix)[1]
+  # Process kinship matrix - check if it's already a list
+  if (is.list(kinship_matrix) && !is.matrix(kinship_matrix)) {
+    # Already a list, use as is
+    relmat <- kinship_matrix
   } else {
-    # Try to infer the variable from the formula
-    relmat_var <- all.vars(formula[[3]])
-    relmat_var <- relmat_var[grepl("\\|", formula[[3]])]
-    if (length(relmat_var) > 0) {
-      relmat_var <- gsub(".*\\|", "", relmat_var)
-      relmat_var <- trimws(relmat_var)
-    } else {
-      stop("Could not determine random effect variable from formula")
+    # Convert to list - need to extract random effect term
+    # For a one-sided formula ~A+B+(1|G), formula[[1]] is ~, formula[[2]] is the right side
+    formula_terms <- terms(formula)
+    
+    # Check if there are random effects terms
+    random_terms <- attr(formula_terms, "term.labels")
+    random_terms <- random_terms[grepl("\\|", random_terms)]
+    
+    if (length(random_terms) == 0) {
+      stop("No random effect term (1|Group) found in formula")
     }
-    K_list <- list()
-    K_list[[relmat_var]] <- kinship_matrix
-    kinship_matrix <- K_list
+    
+    # Extract the group variable (e.g., 'G' from '(1|G)')
+    relmat_var <- sub(".*\\|", "", random_terms[1])
+    relmat_var <- trimws(relmat_var)
+    
+    # Create the named list for relmat
+    relmat <- list()
+    relmat[[relmat_var]] <- kinship_matrix
   }
   
   # Setup the model
@@ -58,7 +64,7 @@ setup_MegaLMM <- function(Y, formula, sample_data, kinship_matrix,
     Y = Y,
     formula = formula,
     data = sample_data,
-    relmat = kinship_matrix,
+    relmat = relmat,
     run_parameters = run_parameters,
     run_ID = run_ID
   )

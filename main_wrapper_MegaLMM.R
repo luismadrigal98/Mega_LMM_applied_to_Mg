@@ -128,7 +128,7 @@ write.table(BLUP_result_all$predictions,
 
 ## Setting the MegaLMM state with all the data ----
 
-megalMM_state <- setup_MegaLMM(
+MegaLMM_state <- setup_MegaLMM(
   Y = Data@Y,
   formula = ~ Covariate_1 + Covariate_2 + Covariate_3 + Covariate_4 + (1|Ind_ID),
   sample_data = Data@Design_dt,
@@ -138,15 +138,17 @@ megalMM_state <- setup_MegaLMM(
 )
 
 ## Setting the priors for all the data ----
-megalMM_state <- set_megalMM_priors(
-  megalMM_state,
+MegaLMM_state <- set_MegaLMM_priors(
+  MegaLMM_state,
   lambda_prior_type = "horseshoe"
 )
 
 ## Optimize the processing when missing data is present ----
 if(any(is.na(Data@Y))){
-  megalMM_state <- optimize_missing_data(megalMM_state)
+  MegaLMM_state <- optimize_missing_data(MegaLMM_state)
 }
+
+
 
 ## Cleaning-up environment ----
 cleanup_parallel()
