@@ -143,7 +143,10 @@ megalMM_state <- set_megalMM_priors(
   lambda_prior_type = "horseshoe"
 )
 
-
+## Optimize the processing when missing data is present ----
+if(any(is.na(Data@Y))){
+  megalMM_state <- optimize_missing_data(megalMM_state)
+}
 
 ## Cleaning-up environment ----
 cleanup_parallel()
