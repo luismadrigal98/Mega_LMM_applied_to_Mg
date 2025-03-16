@@ -126,7 +126,7 @@ write.table(BLUP_result_all$predictions,
 ## 5) Setting up the MEGA_LMM run ----
 ## _____________________________________________________________________________
 
-## Fitting the MegaLMM model with all the data ----
+## Setting the MegaLMM state with all the data ----
 
 megalMM_state <- setup_MegaLMM(
   Y = Data@Y,
@@ -136,6 +136,13 @@ megalMM_state <- setup_MegaLMM(
   latent_factors = 7,       # Changed from factors to latent_factors
   run_ID = "MegaLMM_7_latent"
 )
+
+## Setting the priors for all the data ----
+megalMM_state <- set_megalMM_priors(
+  megalMM_state,
+  lambda_prior_type = "horseshoe"
+)
+
 
 
 ## Cleaning-up environment ----
