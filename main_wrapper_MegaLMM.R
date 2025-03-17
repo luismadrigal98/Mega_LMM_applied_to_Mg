@@ -160,5 +160,14 @@ MegaLMM_state <- init_MegaLMM(MegaLMM_state, retain_par = c('Lambda', 'F_h2', 'r
                                     ),
                                     verbose = TRUE)
 
+## Run burnin ----
+
+MegaLMM_state <- run_MegaLMM_burnin(
+  MegaLMM_state,
+  burnin_rounds = 3,
+  iterations_per_round = 100,
+  make_plots = TRUE
+)
+
 ## Cleaning-up environment ----
 cleanup_parallel()
