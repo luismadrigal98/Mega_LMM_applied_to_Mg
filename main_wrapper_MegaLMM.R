@@ -178,7 +178,7 @@ MegaLMM_state <- run_MegaLMM_sampling(
 )
 
 # Extract predictions ----
-predictions <- extract_predictions(megalMM_state)
+predictions <- extract_predictions(MegaLMM_state)
 U_hat <- predictions$U_hat
 Eta_mean <- predictions$Eta_mean
 Lambda <- load_posterior_param(MegaLMM_state, 'Lambda')
