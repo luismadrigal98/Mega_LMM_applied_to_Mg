@@ -148,7 +148,17 @@ if(any(is.na(Data@Y))){
   MegaLMM_state <- optimize_missing_data(MegaLMM_state)
 }
 
+## Initialize the MegaLMM instance ----
 
+MegaLMM_state <- init_MegaLMM(MegaLMM_state, retain_par = c('Lambda', 'F_h2', 'resid_h2', 'tot_Eta_prec', 'B1'),
+                                    retain_mean_par = c('Eta_mean'),
+                                    retain_function = list(
+                                      U = 'U_F %*% Lambda + U_R + X1 %*% B1',
+                                      G = 't(Lambda) %*% diag(F_h2[1,]) %*% Lambda + diag(resid_h2[1,]/tot_Eta_prec[1,])',
+                                      R = 't(Lambda) %*% diag(1-F_h2[1,]) %*% Lambda + diag((1-resid_h2[1,])/tot_Eta_prec[1,])',
+                                      h2 = '(colSums(F_h2[1,]*Lambda^2)+resid_h2[1,]/tot_Eta_prec[1,])/(colSums(Lambda^2)+1/tot_Eta_prec[1,])'
+                                    ),
+                                    verbose = TRUE)
 
 ## Cleaning-up environment ----
 cleanup_parallel()

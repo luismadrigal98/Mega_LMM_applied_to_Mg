@@ -15,6 +15,8 @@ set_MegaLMM_priors <- function(MegaLMM_state, lambda_prior_type = "horseshoe")
       Lambda_df = 3,
       delta_1 = list(shape = 2, rate = 1),
       delta_2 = list(shape = 3, rate = 1),
+      delta = list(shape = 3, scale = 1),
+      prop_0 = 0.1,
       delta_iterations_factor = 100
     )
   } else if (lambda_prior_type == "ARD") {
