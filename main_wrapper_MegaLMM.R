@@ -169,5 +169,18 @@ MegaLMM_state <- run_MegaLMM_burnin(
   make_plots = TRUE
 )
 
+## Run final MegaLMM ----
+
+MegaLMM_state <- run_MegaLMM_sampling(
+  MegaLMM_state,
+  sampling_rounds = 3,
+  iterations_per_round = 200
+)
+
+# Extract predictions ----
+predictions <- extract_predictions(megalMM_state)
+U_hat <- predictions$U_hat
+Eta_mean <- predictions$Eta_mean
+
 ## Cleaning-up environment ----
 cleanup_parallel()
