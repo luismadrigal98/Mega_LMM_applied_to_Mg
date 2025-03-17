@@ -151,7 +151,7 @@ if(any(is.na(Data@Y))){
 ## Initialize the MegaLMM instance ----
 
 MegaLMM_state <- init_MegaLMM(MegaLMM_state, retain_par = c('Lambda', 'F_h2', 'resid_h2', 'tot_Eta_prec', 'B1'),
-                                    retain_mean_par = c('Eta_mean'),
+                                    retain_mean_par = 'Eta_mean',
                                     retain_function = list(
                                       U = 'U_F %*% Lambda + U_R + X1 %*% B1',
                                       G = 't(Lambda) %*% diag(F_h2[1,]) %*% Lambda + diag(resid_h2[1,]/tot_Eta_prec[1,])',
@@ -181,6 +181,19 @@ MegaLMM_state <- run_MegaLMM_sampling(
 predictions <- extract_predictions(megalMM_state)
 U_hat <- predictions$U_hat
 Eta_mean <- predictions$Eta_mean
+Lambda <- load_posterior_param(MegaLMM_state, 'Lambda')
+Lambda_mean <- get_posterior_mean(Lambda)
+
+# Check if the directory exists (if not, create it)
+
+dir.create("./results/MEGA_LMM", recursive = TRUE, showWarnings = FALSE)
+
+# Saving U_hat
+write.table(U_hat, file = "./results/MEGA_LMM/U_hat.txt", sep = '\t')
+
+# Saving Lambdas and Mean Lambdas
+write.table(Lambda, file = "./results/MEGA_LMM/Lambda.txt", sep = '\t')
+write.table(Lambda_mean, file = "./results/MEGA_LMM/Lambda_mean.txt", sep = '\t')
 
 ## Cleaning-up environment ----
 cleanup_parallel()
